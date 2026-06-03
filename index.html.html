@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>コストコ価格記録</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --red: #E31837;
+    --red-dark: #b01228;
+    --red-light: #fdeaed;
+    --blue: #003DA5;
+    --blue-light: #e8eef8;
+    --gray-bg: #f5f5f5;
+    --gray-border: #ddd;
+    --gray-text: #666;
+    --white: #ffffff;
+    --black: #111;
+    --success: #1a7a3c;
+    --success-light: #e6f4ec;
+    --warn: #b45309;
+    --warn-light: #fef3c7;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--gray-bg);
+    color: var(--black);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: var(--red);
+    color: white;
+    padding: 14px 16px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  header p {
+    font-size: 11px;
+    opacity: 0.85;
+    margin-top: 2px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ===== TABS ===== */
+  .tabs {
+    display: flex;
+    background: var(--white);
+    border-bottom: 2px solid var(--gray-border);
+    position: sticky;
+    top: 60px;
+    z-index: 99;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 4px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-text);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    color: var(--red);
+    border-bottom-color: var(--red);
+    font-weight: 700;
+  }
+
+  /* ===== PAGES ===== */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--white);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ===== FORM ===== */
+  .form-group { margin-bottom: 12px; }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-text);
+    margin-bottom: 4px;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--gray-border);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--white);
+    color: var(--black);
+    -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--red);
+  }
+  input[type="number"] { font-family: 'DM Mono', monospace; }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .btn-primary { background: var(--red); color: white; }
+  .btn-primary:active { background: var(--red-dark); transform: scale(0.98); }
+  .btn-secondary { background: var(--blue-light); color: var(--blue); margin-top: 8px; }
+  .btn-secondary:active { opacity: 0.8; transform: scale(0.98); }
+  .btn-sm {
+    display: inline-block;
+    width: auto;
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+  .btn-danger { background: var(--red-light); color: var(--red); }
+
+  /* ===== PHOTO UPLOAD ===== */
+  .photo-area {
+    border: 2px dashed var(--gray-border);
+    border-radius: 10px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--gray-bg);
+    position: relative;
+  }
+  .photo-area:active { border-color: var(--red); background: var(--red-light); }
+  .photo-area input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    width: 100%; height: 100%; border: none; padding: 0;
+  }
+  .photo-icon { font-size: 36px; margin-bottom: 8px; }
+  .photo-area p { font-size: 13px; color: var(--gray-text); }
+  #preview-img {
+    width: 100%; border-radius: 8px; margin-top: 10px;
+    display: none; max-height: 200px; object-fit: cover;
+  }
+
+  /* ===== PRICE TYPE TOGGLE ===== */
+  .price-type-btns {
+    display: flex; gap: 8px; margin-bottom: 12px;
+  }
+  .type-btn {
+    flex: 1; padding: 8px; border: 2px solid var(--gray-border);
+    border-radius: 8px; font-size: 12px; font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    background: white; cursor: pointer; transition: all 0.15s;
+    color: var(--gray-text);
+  }
+  .type-btn.active { border-color: var(--red); color: var(--red); background: var(--red-light); }
+
+  /* ===== DISCOUNT SECTION ===== */
+  .discount-section { display: none; }
+  .discount-section.show { display: block; }
+  .tag {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 20px; font-size: 11px; font-weight: 700;
+  }
+  .tag-discount { background: var(--warn-light); color: var(--warn); }
+  .tag-regular { background: var(--blue-light); color: var(--blue); }
+  .tag-updated { background: var(--success-light); color: var(--success); }
+
+  /* ===== SEARCH ===== */
+  .search-wrap { position: relative; margin-bottom: 12px; }
+  .search-wrap input { padding-left: 36px; }
+  .search-icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 16px; pointer-events: none;
+  }
+
+  /* ===== PRODUCT LIST ===== */
+  .product-card {
+    background: var(--white);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+  }
+  .product-card:active { box-shadow: 0 0 0 2px var(--red); }
+  .product-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 6px;
+  }
+  .product-name { font-size: 14px; font-weight: 700; flex: 1; padding-right: 8px; }
+  .product-price {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px; font-weight: 500; color: var(--red);
+    white-space: nowrap;
+  }
+  .product-price .yen { font-size: 12px; }
+  .product-meta {
+    font-size: 11px; color: var(--gray-text);
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  }
+  .product-item-no {
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gray-text);
+  }
+
+  /* ===== DETAIL MODAL ===== */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 200;
+    align-items: flex-end;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--white); border-radius: 16px 16px 0 0;
+    width: 100%; max-height: 85vh; overflow-y: auto;
+    padding: 20px 16px 40px; animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-handle {
+    width: 40px; height: 4px; background: var(--gray-border);
+    border-radius: 2px; margin: 0 auto 16px;
+  }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .modal-item-no { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--gray-text); margin-bottom: 14px; }
+
+  .price-now {
+    background: var(--red-light); border-radius: 10px; padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .price-now-label { font-size: 11px; color: var(--red); font-weight: 700; margin-bottom: 2px; }
+  .price-now-val {
+    font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 500; color: var(--red);
+  }
+
+  .history-title {
+    font-size: 12px; font-weight: 700; color: var(--gray-text);
+    margin: 14px 0 8px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .history-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--gray-border);
+    font-size: 13px;
+  }
+  .history-row:last-child { border-bottom: none; }
+  .history-price { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .history-date { font-size: 11px; color: var(--gray-text); }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--black); color: white; padding: 10px 20px;
+    border-radius: 20px; font-size: 13px; opacity: 0;
+    transition: all 0.3s; z-index: 300; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ===== EMPTY STATE ===== */
+  .empty {
+    text-align: center; padding: 40px 16px; color: var(--gray-text);
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 10px; }
+  .empty p { font-size: 14px; }
+
+  /* ===== STATUS ===== */
+  .sync-status {
+    font-size: 11px; text-align: right; margin-bottom: 8px;
+    color: var(--gray-text); font-family: 'DM Mono', monospace;
+  }
+  .sync-status.ok { color: var(--success); }
+  .sync-status.err { color: var(--red); }
+
+  /* ===== SETTINGS ===== */
+  .settings-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--gray-border);
+    font-size: 14px;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-val { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--gray-text); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏷️ コストコ価格記録</h1>
+  <p id="header-count">商品数を読み込み中...</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('list')">📋 一覧</div>
+  <div class="tab" onclick="switchTab('add')">➕ 登録</div>
+  <div class="tab" onclick="switchTab('settings')">⚙️ 設定</div>
+</div>
+
+<!-- ===== 一覧タブ ===== -->
+<div id="tab-list" class="page active">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search-input" placeholder="商品名・商品番号で検索..." oninput="renderList()">
+  </div>
+  <div id="sync-status-list" class="sync-status"></div>
+  <div id="product-list"></div>
+</div>
+
+<!-- ===== 登録タブ ===== -->
+<div id="tab-add" class="page">
+
+  <div class="card">
+    <div class="card-title">📷 値札写真（任意）</div>
+    <div class="photo-area" onclick="document.getElementById('photo-input').click()">
+      <input type="file" id="photo-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+      <div class="photo-icon">📷</div>
+      <p>タップして撮影・選択</p>
+    </div>
+    <img id="preview-img" alt="preview">
+  </div>
+
+  <div class="card">
+    <div class="card-title">📦 商品情報</div>
+    <div class="form-group">
+      <label>商品番号（アイテム番号）*</label>
+      <input type="text" id="item-no" placeholder="例：12345" inputmode="numeric" oninput="autofillName()">
+    </div>
+    <div class="form-group">
+      <label>商品名 *</label>
+      <input type="text" id="item-name" placeholder="例：カークランド オリーブオイル">
+      <div id="autofill-hint" style="font-size:11px;color:var(--success);margin-top:3px;display:none">✅ 登録済み商品から自動入力しました</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💰 価格情報</div>
+
+    <div class="price-type-btns">
+      <button class="type-btn active" onclick="setPriceType('regular')" id="btn-regular">通常価格</button>
+      <button class="type-btn" onclick="setPriceType('discount')" id="btn-discount">値引きあり</button>
+    </div>
+
+    <div class="form-group">
+      <label>定価（税込・円）*</label>
+      <input type="number" id="regular-price" placeholder="0" inputmode="numeric">
+    </div>
+
+    <div class="discount-section" id="discount-section">
+      <div class="form-group">
+        <label>値引き額（円）</label>
+        <input type="number" id="discount-amount" placeholder="0" inputmode="numeric" oninput="calcSalePrice()">
+      </div>
+      <div class="form-group">
+        <label>値引き後価格（自動計算）</label>
+        <input type="number" id="sale-price" placeholder="0" inputmode="numeric" readonly style="background:#f5f5f5">
+      </div>
+      <div class="row-2">
+        <div class="form-group">
+          <label>値引き開始日</label>
+          <input type="date" id="discount-start">
+        </div>
+        <div class="form-group">
+          <label>値引き終了日</label>
+          <input type="date" id="discount-end">
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="discount-unknown" onchange="toggleDiscountPeriod()" style="width:auto;padding:0">
+          期間不明
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>確認日</label>
+      <input type="date" id="confirm-date">
+    </div>
+    <div class="form-group">
+      <label>メモ（任意）</label>
+      <textarea id="memo" placeholder="自由記入欄"></textarea>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveProduct()">💾 保存する</button>
+  <button class="btn btn-secondary" onclick="clearForm()">🗑️ クリア</button>
+</div>
+
+<!-- ===== 設定タブ ===== -->
+<div id="tab-settings" class="page">
+  <div class="card">
+    <div class="card-title">🔗 Googleスプレッドシート連携</div>
+    <div class="form-group">
+      <label>スプレッドシートID</label>
+      <input type="text" id="sheet-id" placeholder="スプレッドシートのIDを入力">
+    </div>
+    <div class="form-group">
+      <label>シート名</label>
+      <input type="text" id="sheet-name" placeholder="シート1">
+    </div>
+    <button class="btn btn-secondary" onclick="saveSettings()">設定を保存</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="authGoogle()">🔑 Googleでログイン</button>
+    <div id="auth-status" style="margin-top:8px;font-size:12px;color:var(--gray-text)"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 データ管理</div>
+    <div class="settings-row">
+      <span>登録商品数</span>
+      <span class="settings-val" id="total-count">0件</span>
+    </div>
+    <div class="settings-row">
+      <span>最終同期</span>
+      <span class="settings-val" id="last-sync">未同期</span>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn btn-secondary" onclick="exportCSV()">📤 CSVエクスポート</button>
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn btn-danger btn-sm" onclick="clearAllData()" style="width:100%;padding:10px">⚠️ 全データ削除</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ℹ️ アプリ情報</div>
+    <div class="settings-row">
+      <span>バージョン</span>
+      <span class="settings-val">1.0.0</span>
+    </div>
+    <div class="settings-row">
+      <span>保存先</span>
+      <span class="settings-val">端末内 + スプレッドシート</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 詳細モーダル ===== -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-content">
+    <div class="modal-handle"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ===== トースト ===== -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== データ管理 =====
+const STORAGE_KEY = 'costco_products';
+const SETTINGS_KEY = 'costco_settings';
+
+function getProducts() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveProducts(products) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+  updateHeaderCount();
+}
+
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function saveSettingsData(s) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+
+// ===== 初期化 =====
+window.onload = function() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('confirm-date').value = today;
+
+  const s = getSettings();
+  if (s.sheetId) document.getElementById('sheet-id').value = s.sheetId;
+  if (s.sheetName) document.getElementById('sheet-name').value = s.sheetName;
+  if (s.lastSync) document.getElementById('last-sync').textContent = s.lastSync;
+
+  renderList();
+  updateHeaderCount();
+  updateTotalCount();
+};
+
+function updateHeaderCount() {
+  const p = getProducts();
+  document.getElementById('header-count').textContent = `登録商品 ${p.length}件`;
+}
+
+function updateTotalCount() {
+  document.getElementById('total-count').textContent = getProducts().length + '件';
+}
+
+// ===== タブ切り替え =====
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'list') renderList();
+}
+
+// ===== 商品番号オートフィル =====
+function autofillName() {
+  const itemNo = document.getElementById('item-no').value.trim();
+  const hint = document.getElementById('autofill-hint');
+  if (!itemNo) { hint.style.display = 'none'; return; }
+  const products = getProducts();
+  const found = products.find(p => p.itemNo === itemNo);
+  if (found) {
+    document.getElementById('item-name').value = found.name;
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+// ===== 写真プレビュー =====
+function handlePhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = document.getElementById('preview-img');
+    img.src = ev.target.result;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===== 価格タイプ =====
+let priceType = 'regular';
+function setPriceType(type) {
+  priceType = type;
+  document.getElementById('btn-regular').classList.toggle('active', type === 'regular');
+  document.getElementById('btn-discount').classList.toggle('active', type === 'discount');
+  document.getElementById('discount-section').classList.toggle('show', type === 'discount');
+}
+
+function calcSalePrice() {
+  const reg = parseFloat(document.getElementById('regular-price').value) || 0;
+  const disc = parseFloat(document.getElementById('discount-amount').value) || 0;
+  document.getElementById('sale-price').value = reg - disc > 0 ? reg - disc : '';
+}
+
+function toggleDiscountPeriod() {
+  const unknown = document.getElementById('discount-unknown').checked;
+  document.getElementById('discount-start').disabled = unknown;
+  document.getElementById('discount-end').disabled = unknown;
+  if (unknown) {
+    document.getElementById('discount-start').value = '';
+    document.getElementById('discount-end').value = '';
+  }
+}
+
+// ===== 保存 =====
+function saveProduct() {
+  const itemNo = document.getElementById('item-no').value.trim();
+  const itemName = document.getElementById('item-name').value.trim();
+  const regularPrice = parseFloat(document.getElementById('regular-price').value);
+  const confirmDate = document.getElementById('confirm-date').value;
+
+  if (!itemNo) { showToast('⚠️ 商品番号を入力してください'); return; }
+  if (!itemName) { showToast('⚠️ 商品名を入力してください'); return; }
+  if (!regularPrice || regularPrice <= 0) { showToast('⚠️ 定価を入力してください'); return; }
+  if (!confirmDate) { showToast('⚠️ 確認日を入力してください'); return; }
+
+  const products = getProducts();
+  const existingIdx = products.findIndex(p => p.itemNo === itemNo);
+
+  const newEntry = {
+    date: confirmDate,
+    regularPrice: regularPrice,
+    type: priceType,
+    memo: document.getElementById('memo').value.trim(),
+  };
+
+  if (priceType === 'discount') {
+    newEntry.discountAmount = parseFloat(document.getElementById('discount-amount').value) || 0;
+    newEntry.salePrice = parseFloat(document.getElementById('sale-price').value) || regularPrice;
+    newEntry.discountStart = document.getElementById('discount-start').value;
+    newEntry.discountEnd = document.getElementById('discount-end').value;
+    newEntry.discountUnknown = document.getElementById('discount-unknown').checked;
+  }
+
+  if (existingIdx >= 0) {
+    // 既存商品の更新
+    const existing = products[existingIdx];
+    const lastEntry = existing.history[existing.history.length - 1];
+
+    // 価格変更チェック
+    if (lastEntry.regularPrice !== regularPrice) {
+      existing.history.push(newEntry);
+      showToast('✅ 価格変更を記録しました');
+    } else if (priceType === 'discount') {
+      existing.history.push(newEntry);
+      showToast('✅ 値引き情報を記録しました');
+    } else {
+      // 価格変更なし→確認日だけ更新
+      existing.history[existing.history.length - 1].date = confirmDate;
+      showToast('✅ 確認日を更新しました');
+    }
+    existing.name = itemName;
+    existing.updatedAt = confirmDate;
+  } else {
+    // 新規登録
+    products.push({
+      itemNo: itemNo,
+      name: itemName,
+      createdAt: confirmDate,
+      updatedAt: confirmDate,
+      history: [newEntry],
+    });
+    showToast('✅ 新規登録しました');
+  }
+
+  saveProducts(products);
+  updateTotalCount();
+  syncToSheet(products[existingIdx >= 0 ? existingIdx : products.length - 1]);
+  clearForm();
+  switchTabDirect('list');
+}
+
+function switchTabDirect(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelectorAll('.tab')[tab === 'list' ? 0 : tab === 'add' ? 1 : 2].classList.add('active');
+  if (tab === 'list') renderList();
+}
+
+function clearForm() {
+  document.getElementById('item-no').value = '';
+  document.getElementById('item-name').value = '';
+  document.getElementById('regular-price').value = '';
+  document.getElementById('discount-amount').value = '';
+  document.getElementById('sale-price').value = '';
+  document.getElementById('discount-start').value = '';
+  document.getElementById('discount-end').value = '';
+  document.getElementById('discount-unknown').checked = false;
+  document.getElementById('memo').value = '';
+  document.getElementById('confirm-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('preview-img').style.display = 'none';
+  document.getElementById('photo-input').value = '';
+  setPriceType('regular');
+}
+
+// ===== 一覧表示 =====
+function renderList() {
+  const products = getProducts();
+  const query = document.getElementById('search-input').value.trim().toLowerCase();
+  const container = document.getElementById('product-list');
+
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(query) || p.itemNo.includes(query)
+  );
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${query ? '🔍' : '📦'}</div>
+        <p>${query ? '該当する商品が見つかりません' : '商品がまだ登録されていません'}</p>
+      </div>`;
+    return;
+  }
+
+  // 更新日順にソート
+  filtered.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+
+  container.innerHTML = filtered.map(p => {
+    const latest = p.history[p.history.length - 1];
+    const displayPrice = latest.type === 'discount' ? latest.salePrice : latest.regularPrice;
+    const hasDiscount = latest.type === 'discount';
+
+    let discountInfo = '';
+    if (hasDiscount) {
+      const period = latest.discountUnknown ? '期間不明' :
+        (latest.discountStart && latest.discountEnd) ? `${latest.discountStart}〜${latest.discountEnd}` :
+        latest.discountStart ? `${latest.discountStart}〜` : '期間不明';
+      discountInfo = `<span class="tag tag-discount">▼${latest.discountAmount.toLocaleString()}円引き</span> <span style="font-size:10px;color:var(--gray-text)">${period}</span>`;
+    }
+
+    return `
+      <div class="product-card" onclick="showDetail('${p.itemNo}')">
+        <div class="product-header">
+          <div class="product-name">${p.name}</div>
+          <div class="product-price"><span class="yen">¥</span>${displayPrice.toLocaleString()}</div>
+        </div>
+        <div class="product-meta">
+          <span class="product-item-no">#${p.itemNo}</span>
+          ${discountInfo}
+          <span style="margin-left:auto">確認: ${latest.date}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ===== 詳細モーダル =====
+function showDetail(itemNo) {
+  const products = getProducts();
+  const p = products.find(x => x.itemNo === itemNo);
+  if (!p) return;
+
+  const latest = p.history[p.history.length - 1];
+  const displayPrice = latest.type === 'discount' ? latest.salePrice : latest.regularPrice;
+
+  let discountDetail = '';
+  if (latest.type === 'discount') {
+    const period = latest.discountUnknown ? '期間不明' :
+      (latest.discountStart && latest.discountEnd) ? `${latest.discountStart} 〜 ${latest.discountEnd}` :
+      latest.discountStart ? `${latest.discountStart}〜` : '期間不明';
+    discountDetail = `
+      <div style="background:var(--warn-light);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--warn);font-weight:700;margin-bottom:4px">値引き中</div>
+        <div style="font-size:13px">定価 <b>¥${latest.regularPrice.toLocaleString()}</b> → <b style="color:var(--red)">¥${displayPrice.toLocaleString()}</b>（¥${latest.discountAmount.toLocaleString()}引き）</div>
+        <div style="font-size:11px;color:var(--warn);margin-top:4px">📅 ${period}</div>
+      </div>`;
+  }
+
+  const historyRows = [...p.history].reverse().map((h, i) => {
+    const label = i === 0 ? '<span class="tag tag-updated">最新</span>' : '';
+    const typeLabel = h.type === 'discount' ?
+      `<span class="tag tag-discount">値引き ¥${h.discountAmount?.toLocaleString()}引き</span>` :
+      '<span class="tag tag-regular">通常</span>';
+    return `
+      <div class="history-row">
+        <div>
+          <div style="display:flex;gap:4px;align-items:center;margin-bottom:2px">${label}${typeLabel}</div>
+          <div class="history-date">${h.date}</div>
+          ${h.memo ? `<div style="font-size:11px;color:var(--gray-text);margin-top:2px">💬 ${h.memo}</div>` : ''}
+        </div>
+        <div class="history-price">¥${(h.type === 'discount' ? h.salePrice : h.regularPrice).toLocaleString()}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-title">${p.name}</div>
+    <div class="modal-item-no">商品番号: #${p.itemNo}</div>
+    <div class="price-now">
+      <div class="price-now-label">現在の価格</div>
+      <div class="price-now-val">¥${displayPrice.toLocaleString()}</div>
+    </div>
+    ${discountDetail}
+    <div class="history-title">価格履歴（${p.history.length}件）</div>
+    ${historyRows}
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="editProduct('${p.itemNo}')">✏️ 更新登録</button>
+      <button class="btn btn-danger btn-sm" style="flex:0.5;padding:10px" onclick="deleteProduct('${p.itemNo}')">削除</button>
+    </div>`;
+
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('show');
+  }
+}
+
+function editProduct(itemNo) {
+  const products = getProducts();
+  const p = products.find(x => x.itemNo === itemNo);
+  if (!p) return;
+  document.getElementById('modal-overlay').classList.remove('show');
+  document.getElementById('item-no').value = p.itemNo;
+  document.getElementById('item-name').value = p.name;
+  const latest = p.history[p.history.length - 1];
+  document.getElementById('regular-price').value = latest.regularPrice;
+  document.getElementById('confirm-date').value = new Date().toISOString().split('T')[0];
+  switchTabDirect('add');
+}
+
+function deleteProduct(itemNo) {
+  if (!confirm('この商品を削除しますか？')) return;
+  const products = getProducts().filter(p => p.itemNo !== itemNo);
+  saveProducts(products);
+  document.getElementById('modal-overlay').classList.remove('show');
+  updateTotalCount();
+  renderList();
+  showToast('🗑️ 削除しました');
+}
+
+// ===== スプレッドシート同期 =====
+let gisClient = null;
+let accessToken = null;
+
+function authGoogle() {
+  const s = getSettings();
+  if (!s.sheetId) { showToast('⚠️ 先にスプレッドシートIDを設定してください'); return; }
+
+  // Google OAuth2 (implicit flow for web app)
+  const CLIENT_ID = s.clientId || '792081883192-9ftaobltviboqlpg3bf2h2hkof149dks.apps.googleusercontent.com';
+  if (!CLIENT_ID) {
+    document.getElementById('auth-status').innerHTML =
+      '⚠️ Google OAuth クライアントIDが未設定です。<br>設定タブでクライアントIDを入力してください。';
+    return;
+  }
+
+  const scope = 'https://www.googleapis.com/auth/spreadsheets';
+  const redirectUri = window.location.href.split('?')[0];
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+  window.location.href = authUrl;
+}
+
+// トークン取得（リダイレクト後）
+(function checkToken() {
+  const hash = window.location.hash;
+  if (hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    accessToken = params.get('access_token');
+    history.replaceState(null, '', window.location.pathname);
+    document.getElementById('auth-status').textContent = '✅ Googleログイン済み';
+    showToast('✅ Googleログイン完了');
+  }
+})();
+
+async function syncToSheet(product) {
+  if (!accessToken) return;
+  const s = getSettings();
+  if (!s.sheetId) return;
+
+  const latest = product.history[product.history.length - 1];
+  const row = [
+    product.itemNo,
+    product.name,
+    latest.regularPrice,
+    latest.type === 'discount' ? latest.discountAmount : '',
+    latest.type === 'discount' ? latest.salePrice : latest.regularPrice,
+    latest.type,
+    latest.discountUnknown ? '期間不明' : (latest.discountStart || ''),
+    latest.discountUnknown ? '期間不明' : (latest.discountEnd || ''),
+    latest.date,
+    latest.memo || '',
+  ];
+
+  const sheetName = s.sheetName || 'シート1';
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${s.sheetId}/values/${encodeURIComponent(sheetName)}!A:J:append?valueInputOption=USER_ENTERED`;
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values: [row] }),
+    });
+
+    const now = new Date().toLocaleString('ja-JP');
+    s.lastSync = now;
+    saveSettingsData(s);
+    document.getElementById('last-sync').textContent = now;
+    document.getElementById('sync-status-list').textContent = '✅ 同期済み: ' + now;
+    document.getElementById('sync-status-list').className = 'sync-status ok';
+  } catch (e) {
+    document.getElementById('sync-status-list').textContent = '❌ 同期失敗';
+    document.getElementById('sync-status-list').className = 'sync-status err';
+  }
+}
+
+// ===== 設定保存 =====
+function saveSettings() {
+  const s = getSettings();
+  s.sheetId = document.getElementById('sheet-id').value.trim();
+  s.sheetName = document.getElementById('sheet-name').value.trim() || 'シート1';
+  saveSettingsData(s);
+  showToast('✅ 設定を保存しました');
+}
+
+// ===== CSV エクスポート =====
+function exportCSV() {
+  const products = getProducts();
+  if (products.length === 0) { showToast('⚠️ データがありません'); return; }
+
+  const headers = ['商品番号', '商品名', '定価', '値引き額', '販売価格', '価格タイプ', '値引き開始', '値引き終了', '確認日', 'メモ'];
+  const rows = [];
+  products.forEach(p => {
+    p.history.forEach(h => {
+      rows.push([
+        p.itemNo, p.name, h.regularPrice,
+        h.discountAmount || '', h.type === 'discount' ? h.salePrice : h.regularPrice,
+        h.type, h.discountStart || '', h.discountEnd || '', h.date, h.memo || ''
+      ]);
+    });
+  });
+
+  const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'costco_prices.csv'; a.click();
+  showToast('📤 CSVを出力しました');
+}
+
+function clearAllData() {
+  if (!confirm('全データを削除しますか？この操作は元に戻せません。')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderList();
+  updateHeaderCount();
+  updateTotalCount();
+  showToast('🗑️ 全データを削除しました');
+}
+
+// ===== トースト =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
